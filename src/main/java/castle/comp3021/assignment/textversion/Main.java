@@ -7,6 +7,7 @@ import castle.comp3021.assignment.player.RandomPlayer;
 import castle.comp3021.assignment.protocol.Configuration;
 import castle.comp3021.assignment.protocol.Game;
 import castle.comp3021.assignment.protocol.Player;
+import castle.comp3021.assignment.protocol.exception.InvalidConfigurationError;
 
 public class Main {
     protected static Player whitePlayer;
@@ -31,6 +32,11 @@ public class Main {
     public static Game createGame(int size, int numMovesProtection) {
         Configuration configuration =
                 new Configuration(size, new Player[]{whitePlayer, blackPlayer}, numMovesProtection);
+        try {
+            configuration.validateConfiguration();
+        } catch (InvalidConfigurationError e){
+            throw e;
+        }
 
         for (int i = 0; i < size; i++) {
             if (i % 2 == 0) {

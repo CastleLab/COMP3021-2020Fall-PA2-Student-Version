@@ -7,9 +7,6 @@ import javafx.scene.layout.BorderPane;
  * Abstraction for a {@link BorderPane} which can act as the root of a {@link javafx.scene.Scene}.
  */
 public abstract class BasePane extends BorderPane {
-    /**
-     * Shared configuration by all panes
-     */
     protected static Configuration globalConfiguration = new Configuration();
     /**
      * Connects all components into the {@link BorderPane}.

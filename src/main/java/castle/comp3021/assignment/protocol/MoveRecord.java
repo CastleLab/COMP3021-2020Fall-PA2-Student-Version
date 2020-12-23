@@ -3,6 +3,7 @@ package castle.comp3021.assignment.protocol;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 
 public class MoveRecord implements Cloneable {
     private Player player;
@@ -35,21 +36,13 @@ public class MoveRecord implements Cloneable {
         return Objects.hash(player, move);
     }
 
-
-    /**
-     * Convert MoveRecord instance to string
-     * - Format example:
-     * player:White; move:(3,0)->(3,1)
-     * player:Black; move:(3,8)->(3,2)
-     * player:White; move:(4,0)->(5,2)
-     * player:Black; move:(1,8)->(1,1)
-     *
-     * @return String of move records
-     */
     @Override
     public String toString() {
-        //TODO
-        return "";
+        return new StringJoiner("; ")
+                .add("player:" + player.getName())
+                .add(String.format("move:(%d,%d)->(%d,%d)", move.getSource().x(), move.getSource().y(),
+                        move.getDestination().x(),move.getDestination().y()))
+                .toString();
     }
 
     @Override

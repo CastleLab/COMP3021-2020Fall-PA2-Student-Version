@@ -2,6 +2,7 @@ package castle.comp3021.assignment.protocol;
 
 import castle.comp3021.assignment.piece.Archer;
 import castle.comp3021.assignment.piece.Knight;
+import castle.comp3021.assignment.player.ConsolePlayer;
 import castle.comp3021.assignment.player.RandomPlayer;
 import castle.comp3021.assignment.protocol.exception.InvalidConfigurationError;
 
@@ -22,8 +23,8 @@ public class Configuration implements Cloneable {
     protected final static int DEFAULTPROTECTMOVE = 1;
 
     /**
-     * Size of game board.
-     * The game board has equal size in width and height.
+     * Size of gameboard.
+     * The gameboard has equal size in width and height.
      * The size should be an odd number.
      */
     protected int size;
@@ -41,18 +42,13 @@ public class Configuration implements Cloneable {
     protected Piece[][] initialBoard;
 
     /**
-     * The central square of the game board.
+     * The central square of the gameboard.
      */
     protected Place centralPlace;
 
     protected int numMovesProtection;
 
-    /**
-     * Constructor of configuration
-     *
-     * @param size size of the game board.
-     */
-    public Configuration(int size, Player[] players, int numMovesProtection) {
+    public void validateConfiguration(){
         // validate size
         if (size < 3) {
             throw new InvalidConfigurationError("size of gameboard must be at least 3");
@@ -64,9 +60,37 @@ public class Configuration implements Cloneable {
             throw new InvalidConfigurationError("size of gameboard is at most 26");
         }
 
+        //validate number of players
+        if (players.length != 2) {
+            throw new InvalidConfigurationError("there must be exactly two players");
+        }
+
+        //validate numMovesProtection, cannot be negative
         if (numMovesProtection < 0) {
             throw new InvalidConfigurationError("number of moves with capture protection cannot be negative");
         }
+    }
+
+    /**
+     * Constructor of configuration
+     *
+     * @param size size of the game board.
+     */
+    public Configuration(int size, Player[] players, int numMovesProtection) {
+//        // validate size
+//        if (size < 3) {
+//            throw new InvalidConfigurationError("size of gameboard must be at least 3");
+//        }
+//        if (size % 2 != 1) {
+//            throw new InvalidConfigurationError("size of gameboard must be an odd number");
+//        }
+//        if (size > 26) {
+//            throw new InvalidConfigurationError("size of gameboard is at most 26");
+//        }
+//
+//        if (numMovesProtection < 0) {
+//            throw new InvalidConfigurationError("number of moves with capture protection cannot be negative");
+//        }
 
         this.size = size;
         // We only have 2 players
@@ -91,10 +115,12 @@ public class Configuration implements Cloneable {
 
     public Configuration(int size, Player[] players) {
         this(size, players, 0);
+        this.validateConfiguration();
     }
 
     public Configuration(Player[] players) {
         this(Configuration.DEFAULTSIZE, players, Configuration.DEFAULTPROTECTMOVE);
+        this.validateConfiguration();
     }
 
     public Configuration() {
@@ -177,44 +203,32 @@ public class Configuration implements Cloneable {
         this.numMovesProtection = numMovesProtection;
     }
 
-    /**
-     * Check whether the first player is human player or not
-     * @return boolean
-     */
-    public boolean isFirstPlayerHuman(){
-        //TODO
-        return false;
+    public boolean isWhitePlayerHuman(){
+        return players[0] instanceof ConsolePlayer;
     }
 
-    /**
-     * Check whether the second player is human player or not
-     * @return boolean
-     */
-    public boolean isSecondPlayerHuman(){
-        //TODO
-        return false;
+    public boolean isBlackPlayerHuman(){
+        return players[1] instanceof ConsolePlayer;
     }
 
-    /**
-     * set the first player to be human or computer
-     * @param isHuman whether the first is human or not
-     */
-    public void setFirstPlayerHuman(boolean isHuman){
-        //TODO
+    public void setWhitePlayer(boolean isHuman){
+        if (isHuman) {
+            players[0] = new ConsolePlayer("White");
+        }
+        else{
+            players[0] = new RandomPlayer("White");
+        }
     }
 
-    /**
-     * set the second player to be human or computer
-     * @param isHuman whether the second is human or not
-     */
-    public void setSecondPlayerHuman(boolean isHuman){
-        //TODO
+    public void setBlackPlayer(boolean isHuman){
+        if (isHuman) {
+            players[1] = new ConsolePlayer("Black");
+        }
+        else{
+            players[1]= new RandomPlayer("Black");
+        }
     }
 
-
-    /**
-     * set initial pieces
-     */
     public void setAllInitialPieces(){
         Player whitePlayer = this.getPlayers()[1];
         Player blackPlayer = this.getPlayers()[0];
@@ -235,26 +249,14 @@ public class Configuration implements Cloneable {
         }
     }
 
-    /**
-     * Write configuration to string
-     *
-     * - Format example:
-     * size:9
-     * numMovesProtection:1
-     * centralPlace:(4,4)
-     * numPlayers:2
-     *
-     * #Player info
-     * #player1:
-     * name:White; score:14
-     * #player2:
-     * name:Black; score:26
-     *
-     * @return the string of configuration
-     */
     @Override
     public String toString() {
-        // TODO
-        return "";
+        return String.format("size:%d\nnumMovesProtection:%d\ncentralPlace:%s\nnumPlayers:%d\n\n#Player info\n#player1:\n%s\n#player2:\n%s",
+                this.getSize(),
+                this.getNumMovesProtection(),
+                this.getCentralPlace().toString(),
+                this.getPlayers().length,
+                this.getPlayers()[0].toString(),
+                this.getPlayers()[1].toString());
     }
 }

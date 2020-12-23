@@ -9,12 +9,9 @@ import java.util.TimerTask;
 
 
 /**
- * Timer for counting time elapsed
+ * Timer for handling flow events.
  */
 public class DurationTimer {
-    /**
-     * default time in seconds during each round
-     */
     private static int defaultEachRound = 30;
 
     @NotNull
@@ -23,9 +20,8 @@ public class DurationTimer {
 
     private final List<Runnable> onTickCallbacks = new ArrayList<>();
 
-    /**
-     * time elapsed
-     */
+    private final List<Runnable> onFlowCallbacks = new ArrayList<>();
+
     private int ticksElapsed;
 
 
@@ -43,29 +39,36 @@ public class DurationTimer {
         ticksElapsed = 0;
     }
 
-    /**
-     *  Registers a callback to be run when a tick has passed.
-     * @param cb
-     */
+    void registerFlowCallback(@NotNull final Runnable cb) {
+        onFlowCallbacks.add(cb);
+    }
+
     void registerTickCallback(@NotNull final Runnable cb) {
         onTickCallbacks.add(cb);
     }
 
 
-    /**
-     * start the timer, timer should increase 1 every 1 second
-     * Hint:
-     *  - You may need to use {@link Timer#scheduleAtFixedRate(TimerTask, long, long)}
-     */
     void start() {
-        //TODO
+        try {
+            flowTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    ++ticksElapsed;
+                    onTickCallbacks.forEach(Runnable::run);
+                    onFlowCallbacks.forEach(Runnable::run);
+
+                }
+            }, 1000, 1000);
+        } catch (IllegalStateException ex){
+            if (ex.getMessage() == "Timer already cancelled."){
+                flowTimer = new Timer(true);
+            }
+        }
     }
 
-    /**
-     * Stop the timer
-     */
+
     void stop() {
-        //TODO
+        flowTimer.cancel();
     }
 
 }

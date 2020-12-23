@@ -5,11 +5,14 @@ import javafx.scene.image.Image;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Helper class for loading resources from the filesystem.
  */
 public class ResourceLoader {
+
+
     /**
      * Path to the resources directory.
      */
@@ -17,9 +20,11 @@ public class ResourceLoader {
     private static final Path RES_PATH;
 
     static {
-        // TODO: Initialize RES_PATH
-        // replace null to the actual path
-        RES_PATH = null;
+        final Path pwd = Paths.get("src", "main", "resources");
+        if (!pwd.toFile().exists()) {
+            throw new RuntimeException("Cannot find resources directory");
+        }
+        RES_PATH = pwd.toAbsolutePath();
     }
 
     /**
@@ -31,26 +36,27 @@ public class ResourceLoader {
      */
     @NotNull
     public static String getResource(@NotNull final String relativePath) {
-        // TODO
-        return null;
+        final var actualPath = RES_PATH.resolve(relativePath);
+
+        if (actualPath.toFile().exists()) {
+            return actualPath.toAbsolutePath().toFile().toURI().toString();
+        } else {
+            throw new ResourceNotFoundException("Cannot find file specified: " + relativePath);
+        }
     }
 
-    /**
-     * Return an image {@link Image} object
-     * @param typeChar a character represents the type of image needed.
-     *                 - 'K': white knight (whiteK.png)
-     *                 - 'A': white archer (whiteA.png)
-     *                 - 'k': black knight (blackK.png)
-     *                 - 'a': black archer (blackA.png)
-     *                 - 'c': central x (center.png)
-     *                 - 'l': light board (lightBoard.png)
-     *                 - 'd': dark board (darkBoard.png)
-     * @return an image
-     */
     @NotNull
     public static Image getImage(char typeChar) {
-        // TODO
-        return null;
+        return switch (typeChar) {
+            case 'K' -> new Image(ResourceLoader.getResource("assets/images/whiteK.png"));
+            case 'A' -> new Image(ResourceLoader.getResource("assets/images/whiteA.png"));
+            case 'k' -> new Image(ResourceLoader.getResource("assets/images/blackK.png"));
+            case 'a' -> new Image(ResourceLoader.getResource("assets/images/blackA.png"));
+            case 'c' -> new Image(ResourceLoader.getResource("assets/images/center.png"));
+            case 'l' -> new Image(ResourceLoader.getResource("assets/images/lightBoard.png"));
+            case 'd' -> new Image(ResourceLoader.getResource("assets/images/darkBoard.png"));
+            default -> throw new ResourceNotFoundException("Cannot find image type specified: " + typeChar);
+        };
     }
 
 

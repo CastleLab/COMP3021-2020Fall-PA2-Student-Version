@@ -1,8 +1,12 @@
 package castle.comp3021.assignment.gui;
 
-import castle.comp3021.assignment.textversion.JesonMor;
-import castle.comp3021.assignment.protocol.*;
 import castle.comp3021.assignment.gui.controllers.Renderer;
+import castle.comp3021.assignment.protocol.Configuration;
+import castle.comp3021.assignment.protocol.Move;
+import castle.comp3021.assignment.protocol.Piece;
+import castle.comp3021.assignment.protocol.Player;
+import castle.comp3021.assignment.textversion.JesonMor;
+import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -21,24 +25,23 @@ public class FXJesonMor extends JesonMor {
 
     private final StringProperty currentPlayerNameProperty = new SimpleStringProperty(getCurrentPlayer().getName());
 
-    /**
-     * Initialize an instance of {@link JesonMor}
-     * Hint:
-     *     - Also consider durationTimer
-     * @param configuration
-     */
     public FXJesonMor(Configuration configuration){
-        //TODO
+        super(new Configuration(configuration.getSize(), configuration.getPlayers(), configuration.getNumMovesProtection()));
+
+        //initialize players' score
+        for (var player:this.configuration.getPlayers()){
+            player.setScore(0);
+        }
+
+        this.configuration.setAllInitialPieces();
+        this.board = this.configuration.getInitialBoard();
+
+        this.durationTimer = new DurationTimer();
     }
 
-    /**
-     * This method can be used in {@link castle.comp3021.assignment.gui.views.panes.GamePlayPane}
-     * Entry of render board and pieces using {@link Renderer#renderChessBoard(Canvas, int, Place)}
-     * and {@link Renderer#renderPieces(Canvas, Piece[][])}
-     * @param canvas render the given canvas
-     */
     public void renderBoard(@NotNull Canvas canvas){
-        //TODO
+        Platform.runLater(() -> Renderer.renderChessBoard(canvas, this.configuration.getSize(), this.configuration.getCentralPlace()));
+        Platform.runLater(() -> Renderer.renderPieces(canvas, this.board));
     }
 
     /**
@@ -50,16 +53,24 @@ public class FXJesonMor extends JesonMor {
         durationTimer.registerTickCallback(handler);
     }
 
+    /**
+     * Adds a handler to be run when the water flows into an additional tile.
+     *
+     * @param handler {@link Runnable} to execute.
+     */
+    public void addOnFlowHandler(@NotNull Runnable handler) {
+        durationTimer.registerFlowCallback(handler);
+    }
 
     /**
-     * Starts the timer
+     * Starts the flow of water.
      */
     public void startCountdown() {
         durationTimer.start();
     }
 
     /**
-     * Stops the timer
+     * Stops the flow of water.
      */
     public void stopCountdown() {
         durationTimer.stop();
@@ -92,6 +103,13 @@ public class FXJesonMor extends JesonMor {
         player.setScore(player.getScore() + newScore);
 
         // update score to 2 properties
-        // TODO: update scorePlayer1Property and scorePlayer2Property
+        Platform.runLater(() -> scorePlayer1Property.set(configuration.getPlayers()[0].getScore()));
+        Platform.runLater(() -> scorePlayer2Property.set(configuration.getPlayers()[1].getScore()));
+    }
+
+    public void increaseNumMove(){
+        numMoves ++;
+        currentPlayer = configuration.getPlayers()[numMoves % configuration.getPlayers().length];
+        Platform.runLater(() -> currentPlayerNameProperty.set(currentPlayer.getName()));
     }
 }

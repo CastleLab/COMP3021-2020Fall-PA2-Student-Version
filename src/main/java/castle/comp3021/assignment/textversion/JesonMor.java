@@ -179,19 +179,16 @@ public class JesonMor extends Game {
         return moves.toArray(new Move[0]);
     }
 
-
-    /**
-     * Convert necessary records of Jeson Mor to string
-     *
-     * Format example can be found at :src/main/java/records/*.txt
-     * Hint:
-     * - You may reuse {@link MoveRecord#toString()} and {@link Configuration#toString()}
-     *
-     * @return string of Jeson Mor
-     */
     @Override
     public String toString() {
-        //TODO
-        return "";
+        StringBuilder moveRecordString = new StringBuilder();
+        for (var record : moveRecords) {
+            moveRecordString.append(record.toString()).append("\n");
+        }
+        return String.format("### %s ###\n\n#Game setting\n%s\n\n#Move records\n%s\nEND",
+                this.getClass().getSimpleName(),
+                configuration.toString(),
+                moveRecordString
+        );
     }
 }

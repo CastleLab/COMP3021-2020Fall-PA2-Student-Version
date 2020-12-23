@@ -3,43 +3,34 @@ package castle.comp3021.assignment.gui.views.panes;
 import castle.comp3021.assignment.gui.DurationTimer;
 import castle.comp3021.assignment.gui.FXJesonMor;
 import castle.comp3021.assignment.gui.ViewConfig;
+import castle.comp3021.assignment.gui.controllers.AudioManager;
+import castle.comp3021.assignment.gui.controllers.Renderer;
+import castle.comp3021.assignment.gui.controllers.SceneManager;
 import castle.comp3021.assignment.gui.views.BigButton;
 import castle.comp3021.assignment.gui.views.BigVBox;
 import castle.comp3021.assignment.gui.views.GameplayInfoPane;
 import castle.comp3021.assignment.gui.views.SideMenuVBox;
-import castle.comp3021.assignment.protocol.*;
-import castle.comp3021.assignment.gui.controllers.Renderer;
+import castle.comp3021.assignment.player.ConsolePlayer;
+import castle.comp3021.assignment.player.RandomPlayer;
+import castle.comp3021.assignment.protocol.Configuration;
+import castle.comp3021.assignment.protocol.Move;
+import castle.comp3021.assignment.protocol.Place;
+import castle.comp3021.assignment.protocol.Player;
+import castle.comp3021.assignment.protocol.io.Serializer;
+import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.text.Text;
 import org.jetbrains.annotations.NotNull;
-
-/**
- * This class implements the main playing function of Jeson Mor
- * The necessary components have been already defined (e.g., topBar, title, buttons).
- * Basic functions:
- *      - Start game and play, update scores
- *      - Restart the game
- *      - Return to main menu
- *      - Elapsed Timer (ticking from 00:00 -> 00:01 -> 00:02 -> ...)
- *          - The format is defined in {@link GameplayInfoPane#formatTime(int)}
- * Requirement:
- *      - The game should be initialized by configuration passed from {@link GamePane}, instead of the default configuration
- *      - The information of the game (including scores, current player name, ect.) is implemented in {@link GameplayInfoPane}
- *      - The center canvas (defined as gamePlayCanvas) should be disabled when current player is computer
- * Bonus:
- *      - A countdown timer (if this is implemented, then elapsed timer can be either kept or removed)
- *      - The format of countdown timer is defined in {@link GameplayInfoPane#countdownFormat(int)}
- *      - If one player runs out of time of each round {@link DurationTimer#getDefaultEachRound()}, then the player loses the game.
- * Hint:
- *      - You may find it useful to synchronize javafx UI-thread using {@link javafx.application.Platform#runLater}
- */ 
 
 public class GamePlayPane extends BasePane {
     @NotNull
@@ -52,6 +43,8 @@ public class GamePlayPane extends BasePane {
     private final Text parameterText = new Text();
     @NotNull
     private final BigButton returnButton = new BigButton("Return");
+    @NotNull
+    private final BigButton saveRecordButton = new BigButton("Save");
     @NotNull
     private final BigButton startButton = new BigButton("Start");
     @NotNull
@@ -66,229 +59,407 @@ public class GamePlayPane extends BasePane {
     @NotNull
     private final ScrollPane scrollPane = new ScrollPane();
 
-    /**
-     * time passed in seconds
-     * Hint:
-     *      - Bind it to time passed in {@link GameplayInfoPane}
-     */
     private final IntegerProperty ticksElapsed = new SimpleIntegerProperty();
+
 
     @NotNull
     private final Canvas gamePlayCanvas = new Canvas();
 
     private GameplayInfoPane infoPane = null;
 
-    /**
-     * You can add more necessary variable here.
-     * Hint:
-     *      - the passed in {@link FXJesonMor}
-     *      - other global variable you want to note down.
-     */
-    // TODO
+    private FXJesonMor fxJesonMor = null;
+
+    private Place lastSourcePlace;
+    private Place lastTargetPlace;
+    private Player winner = null;
+
 
 
     public GamePlayPane() {
+        setScrollPane();
         connectComponents();
         styleComponents();
         setCallbacks();
     }
 
-    /**
-     * Components are added, adjust it by your own choice
-     */
     @Override
     void connectComponents() {
-        //TODO
+        topBar.getChildren().add(title);
+        topBar.setAlignment(Pos.CENTER);
+        leftContainer.getChildren().addAll(
+                parameterText,
+                historyLabel,
+                scrollPane,
+                startButton,
+                restartButton,
+                returnButton
+        );
+        centerContainer.getChildren().addAll(
+                gamePlayCanvas
+        );
+
+        this.setTop(topBar);
+        this.setLeft(leftContainer);
+        this.setCenter(centerContainer);
     }
 
-    /**
-     * style of title and scrollPane have been set up, no need to add more
-     */
     @Override
     void styleComponents() {
         title.getStyleClass().add("head-size");
+    }
+
+    @Override
+    void setCallbacks() {
+        startButton.setOnAction(event -> startGame());
+        returnButton.setOnAction(event -> doQuitToMenuAction());
+        restartButton.setOnAction(event -> onRestartButtonClick());
+        saveRecordButton.setOnAction(event -> Serializer.getInstance().saveToFile(fxJesonMor));
+        gamePlayCanvas.setOnMousePressed(this::onCanvasPressed);
+        gamePlayCanvas.setOnMouseDragged(this::onCanvasDragged);
+        gamePlayCanvas.setOnMouseReleased(this::onCanvasReleased);
+
+    }
+
+    void setScrollPane(){
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefSize(ViewConfig.WIDTH / 4.0, ViewConfig.HEIGHT / 3.0 );
         scrollPane.setContent(historyFiled);
     }
 
-    /**
-     * The listeners are added here.
-     */
-    @Override
-    void setCallbacks() {
-        //TODO
+    private void setParameterText(Configuration configuration){
+        parameterText.setText(
+                "Parameters:\n\n" +
+                "Size of board: " + configuration.getSize() + "\n" +
+                "Num of protection moves: " + configuration.getNumMovesProtection() + "\n" +
+                "Player " + configuration.getPlayers()[0].getName() + (configuration.getPlayers()[0] instanceof ConsolePlayer ? "(human)": "(computer)") + "\n" +
+                "Player " + configuration.getPlayers()[1].getName() + (configuration.getPlayers()[1] instanceof ConsolePlayer ? "(human)": "(computer)") + "\n"
+        );
+        parameterText.setDisable(true);
     }
 
-    /**
-     * Set up necessary initialization.
-     * Hint:
-     *      - Set buttons enable/disable
-     *          - Start button: enable
-     *          - restart button: disable
-     *      - This function can be invoked before {@link GamePlayPane#startGame()} for setting up
-     *
-     * @param fxJesonMor pass in an instance of {@link FXJesonMor}
-     */
     void initializeGame(@NotNull FXJesonMor fxJesonMor) {
-        //TODO
+        if (this.fxJesonMor != null) {
+            endGame();
+        }
+
+        this.fxJesonMor = fxJesonMor;
+
+        this.infoPane = new GameplayInfoPane(fxJesonMor.getPlayer1Score(), fxJesonMor.getPlayer2Score(), fxJesonMor.getCurPlayerName(), ticksElapsed);
+        this.infoPane.setPrefHeight(10);
+        HBox.setHgrow(infoPane, Priority.ALWAYS);
+
+        this.centerContainer.getChildren().add(infoPane);
+        this.startButton.setDisable(false);
+        this.restartButton.setDisable(true);
+        this.saveRecordButton.setDisable(true);
+
+        gamePlayCanvas.setWidth(0);
+        gamePlayCanvas.setHeight(0);
+
+        disnableCanvas();
+
+        this.lastSourcePlace = null;
+        this.lastTargetPlace = null;
+        this.winner = null;
+
+        setParameterText(fxJesonMor.getConfiguration());
+
+        fxJesonMor.getCurPlayerName().addListener((observable, oldValue, newValue) -> {
+            // if player changed, restart timer
+            Platform.runLater(()->ticksElapsed.set(0));
+        });
+
+        gamePlayCanvas.setWidth(fxJesonMor.getConfiguration().getSize() * ViewConfig.PIECE_SIZE);
+        gamePlayCanvas.setHeight(fxJesonMor.getConfiguration().getSize() * ViewConfig.PIECE_SIZE);
+
+        fxJesonMor.addOnTickHandler(() -> Platform.runLater(() -> ticksElapsed.set(ticksElapsed.get() + 1)));
+
+        fxJesonMor.addOnFlowHandler(() -> {
+            if (winner == null) {
+                Platform.runLater(this::playEachRound);
+            }
+
+            // if duration timer is over 30 seconds, current player failed the game
+            if (ticksElapsed.get() >= DurationTimer.getDefaultEachRound() - 1){
+                AudioManager.getInstance().playSound(AudioManager.SoundRes.LOSE);
+                Platform.runLater(this::createLosePopup);
+                Platform.runLater(() -> ticksElapsed.set(0));
+                fxJesonMor.stopCountdown();
+            }
+        });
+
+        fxJesonMor.renderBoard(gamePlayCanvas);
     }
 
-    /**
-     * enable canvas clickable
-     */
     private void enableCanvas(){
         gamePlayCanvas.setDisable(false);
     }
 
-    /**
-     * disable canvas clickable
-     */
     private void disnableCanvas(){
         gamePlayCanvas.setDisable(true);
     }
 
-    /**
-     * After click "start" button, everything will start from here
-     * No explicit skeleton is given here.
-     * Hint:
-     *      - Give a carefully thought to how to activate next round of play
-     *      - When a new {@link Move} is acquired, it needs to be check whether this move is valid.
-     *          - If is valid, make the move, render the {@link GamePlayPane#gamePlayCanvas}
-     *          - If is invalid, abort the move
-     *          - Update score, add the move to {@link GamePlayPane#historyFiled}, also record the move
-     *          - Move forward to next player
-     *      - The player can be either computer or human, when the computer is playing, disable {@link GamePlayPane#gamePlayCanvas}
-     *      - You can add a button to enable next move once current move finishes.
-     *          - or you can add handler when mouse is released
-     *          - or you can take advantage of timer to automatically change player. (Bonus)
-     */
+
     public void startGame() {
-        //TODO
+        startButton.setDisable(true);
+        restartButton.setDisable(false);
+        fxJesonMor.startCountdown();
     }
 
     /**
-     * Restart the game
-     * Hint: end the current game and start a new game
+     * Each round, check current player
+     * If is human player, enable mouse click
+     * If is computer, play automatically
+     * After get next move by either mouse clicking or automatic, validate this move
+     * If move is valid and available for current player, then make the move
+     * Re-render the board
+     */
+    private void playEachRound(){
+        var lastPlayer = this.fxJesonMor.getConfiguration().getPlayers()[fxJesonMor.getNumMoves() % fxJesonMor.getConfiguration().getPlayers().length];
+        checkOutOfMove(lastPlayer);
+
+        if (winner == null){
+            Move lastMove = null;
+
+            if (lastPlayer instanceof ConsolePlayer) {
+                enableCanvas();
+                if (this.lastSourcePlace != null && this.lastTargetPlace != null) {
+                    lastMove = new Move(this.lastSourcePlace, this.lastTargetPlace);
+                    lastSourcePlace = null;
+                    lastTargetPlace = null;
+                    disnableCanvas();
+                }
+            } else if (lastPlayer instanceof RandomPlayer) {
+                disnableCanvas();
+                lastMove = lastPlayer.nextMove(fxJesonMor, fxJesonMor.getAvailableMoves(lastPlayer));
+            }
+
+            if (lastPlayer != null & lastMove != null){
+                var hasMadeMove = tryMove(lastPlayer, lastMove);
+
+                if (hasMadeMove) {
+                    updateHistoryField(lastMove);
+                }
+                lastMove = null;
+                lastPlayer = null;
+                fxJesonMor.renderBoard(gamePlayCanvas);
+            }
+        }
+        checkWinner();
+    }
+
+    /**
+     * Restart the game, clear the board, history text field, and restart timer
      */
     private void onRestartButtonClick(){
-        //TODO
+        endGame();
+        initializeGame(new FXJesonMor(this.fxJesonMor.getConfiguration()));
+        disnableCanvas();
     }
 
     /**
-     * Add mouse pressed handler here.
+     * When press, note down the source point
      * Play click.mp3
      * draw a rectangle at clicked board tile to show which tile is selected
-     * Hint:
-     *      - Highlight the selected board cell using {@link Renderer#drawRectangle(GraphicsContext, double, double)}
-     *      - Refer to {@link GamePlayPane#toBoardCoordinate(double)} for help
-     * @param event mouse click
+     * @param event mouse click, note down the (x,y) as source point of move
      */
     private void onCanvasPressed(MouseEvent event){
-        // TODO
+        Renderer.drawRectangle(gamePlayCanvas.getGraphicsContext2D(), toBoardCoordinate(event.getX()), toBoardCoordinate(event.getY()));
+        AudioManager.getInstance().playSound(AudioManager.SoundRes.CLICK);
+
+        this.lastSourcePlace = new Place(toBoardCoordinate(event.getX()), toBoardCoordinate(event.getY()));
     }
 
     /**
      * When mouse dragging, draw a path
-     * Hint:
-     *      - When mouse dragging, you can use {@link Renderer#drawOval(GraphicsContext, double, double)} to show the path
-     *      - Refer to {@link GamePlayPane#toBoardCoordinate(double)} for help
      * @param event mouse position
      */
     private void onCanvasDragged(MouseEvent event){
-        //TODO
+        Renderer.drawOval(gamePlayCanvas.getGraphicsContext2D(), event.getX(), event.getY());
     }
 
     /**
-     * Mouse release handler
-     * Hint:
-     *      - When mouse released, a {@link Move} is completed, you can either validate and make the move here, or somewhere else.
-     *      - Refer to {@link GamePlayPane#toBoardCoordinate(double)} for help
-     *      - If the piece has been successfully moved, play place.mp3 here (or somewhere else)
+     * When mouse release, a Move is finished, check whether the move is valid and available for the current player
      * @param event mouse release
      */
     private void onCanvasReleased(MouseEvent event){
-        // TODO
+        this.lastTargetPlace = new Place(toBoardCoordinate(event.getX()), toBoardCoordinate(event.getY()));
+        fxJesonMor.renderBoard(gamePlayCanvas);
     }
 
     /**
-     * Creates a popup which tells the winner
+     * Creates a popup which tells the player they have completed the map.
      */
     private void createWinPopup(String winnerName){
-        //TODO
+        final var box = new Alert(Alert.AlertType.CONFIRMATION);
+        box.setTitle("Congratulations!");
+        box.setContentText(winnerName +" wins!");
+        choicesOfPopup(box);
     }
 
+    /**
+     * if current player is out of move, namely no available move, then update winner
+     */
+    private void checkOutOfMove(Player lastPlayer){
+        var availableMoves = fxJesonMor.getAvailableMoves(lastPlayer);
+
+        if (availableMoves.length <= 0) {
+            Platform.runLater(()->showInvalidMoveMsg("No available moves for the player " + lastPlayer.getName()));
+            if (fxJesonMor.getConfiguration().getPlayers()[0].getScore() < fxJesonMor.getConfiguration().getPlayers()[1].getScore()) {
+                this.winner = fxJesonMor.getConfiguration().getPlayers()[0];
+            } else if (fxJesonMor.getConfiguration().getPlayers()[0].getScore() > fxJesonMor.getConfiguration().getPlayers()[1].getScore()) {
+                this.winner = fxJesonMor.getConfiguration().getPlayers()[1];
+            } else {
+               this.winner = lastPlayer;
+            }
+        }
+    }
 
     /**
      * check winner, if winner comes out, then play the win.mp3 and popup window.
-     * The window has three options:
-     *      - Start New Game: the same function as clicking "restart" button
-     *      - Export Move Records: Using {@link castle.comp3021.assignment.protocol.io.Serializer} to write game's configuration to file
-     *      - Return to Main menu, using {@link GamePlayPane#doQuitToMenuAction()}
      */
     private void checkWinner(){
-        //TODO
+        if (this.winner != null){
+            AudioManager.getInstance().playSound(AudioManager.SoundRes.WIN);
+            fxJesonMor.stopCountdown();
+            endGame();
+            createWinPopup(winner.getName());
+        }
     }
 
     /**
-     * Popup a window showing invalid move information
-     * @param errorMsg error string stating why this move is invalid
+     * try lastMove, if the last move is available for current player and obey the rules, then make move
+     * otherwise, abort this move
+     * @param lastPlayer pass in the current player
+     * @param lastMove last move want to make
+     * @return whether the move has been successfully made or not.
      */
+    private boolean tryMove(@NotNull Player lastPlayer, @NotNull Move lastMove){
+        boolean moveResult = false;
+        var availableMoves = fxJesonMor.getAvailableMoves(lastPlayer);
+
+        boolean isAvailable = false;
+
+        // check availability
+        for (var availableMove: availableMoves){
+            if (lastMove.equals(availableMove)){
+                isAvailable = true;
+                break;
+            }
+        }
+
+        // check validation
+        var checkMoveResult =  lastPlayer.validateMove(fxJesonMor, lastMove);
+        if (checkMoveResult == null){
+            if (isAvailable){
+                makeMove(lastPlayer, lastMove);
+                moveResult = true;
+            } else{
+                showInvalidMoveMsg("The piece you moved does not belong to you!");
+            }
+        }
+        else {
+            showInvalidMoveMsg(checkMoveResult);
+        }
+        return moveResult;
+    }
+    /**
+     * If lastMove is valid and available, then make this move
+     * Move the move, update numMove and scores, update this move to move record, update winner if available
+     * @param lastMove: last move want to make
+     */
+    private void makeMove(Player lastPlayer, Move lastMove){
+        AudioManager.getInstance().playSound(AudioManager.SoundRes.PLACE);
+
+        var movedPiece = fxJesonMor.getPiece(lastMove.getSource());
+        fxJesonMor.movePiece(lastMove);
+        fxJesonMor.increaseNumMove();
+        fxJesonMor.updateScore(lastPlayer, movedPiece, lastMove);
+
+        this.winner = fxJesonMor.getWinner(lastPlayer, movedPiece, lastMove);
+    }
+
+    private void createLosePopup(){
+        final var box = new Alert(Alert.AlertType.CONFIRMATION);
+        box.setTitle("Sorry! Time's out!");
+        box.setContentText(fxJesonMor.getCurrentPlayer().getName() +" Lose!");
+
+        choicesOfPopup(box);
+    }
+
+    private void choicesOfPopup(Alert box) {
+        final var newGameButton = new ButtonType("Start New Game");
+        final var saveRecordButton = new ButtonType("Export Move Records");
+        final var returnButton = new ButtonType("Return to Main Menu");
+        box.getButtonTypes().setAll(newGameButton, saveRecordButton, returnButton);
+
+        final var result = box.showAndWait().orElseThrow();
+        final var resultText = result.getText();
+        switch (resultText) {
+            case "Start New Game" -> onRestartButtonClick();
+            case "Return to Main Menu" -> doQuitToMenu();
+            case "Export Move Records" -> {
+                Serializer.getInstance().saveToFile(fxJesonMor);
+                onRestartButtonClick();
+            }
+        }
+    }
+
     private void showInvalidMoveMsg(String errorMsg){
-        //TODO
+        final var alertBox = new Alert(Alert.AlertType.ERROR);
+        alertBox.setTitle("Invalid Move");
+        alertBox.setHeaderText("Your movement is invalid due to following reason(s):");
+        alertBox.setContentText(errorMsg);
+        alertBox.showAndWait();
     }
 
-    /**
-     * Before actually quit to main menu, popup a alert window to double check
-     * Hint:
-     *      - title: Confirm
-     *      - HeaderText: Return to menu?
-     *      - ContentText: Game progress will be lost.
-     *      - Buttons: CANCEL and OK
-     *  If click OK, then refer to {@link GamePlayPane#doQuitToMenu()}
-     *  If click Cancle, than do nothing.
-     */
     private void doQuitToMenuAction() {
-        // TODO
+        final var box = new Alert(Alert.AlertType.CONFIRMATION);
+        box.setTitle("Confirm");
+        box.setHeaderText("Return to menu?");
+        box.setContentText("Game progress will be lost.");
+        box.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+
+        box.showAndWait();
+        if (box.getResult().equals(ButtonType.OK)) {
+            doQuitToMenu();
+        }
     }
 
-    /**
-     * Update the move to the historyFiled
-     * @param move the last move that has been made
-     */
     private void updateHistoryField(Move move){
-        //TODO
+        String moveString = String.format("[%d, %d] -> [%d, %d]",
+                move.getSource().x(), move.getSource().y(), move.getDestination().x(), move.getDestination().y());
+        historyFiled.setText(historyFiled.getText() + "\n" + moveString);
     }
 
     /**
-     * Go back to main menu
-     * Hint: before quit, you need to end the game
+     * Go back to the Level Select scene.
      */
     private void doQuitToMenu() {
-        // TODO
+        endGame();
+        this.fxJesonMor = null;
+        SceneManager.getInstance().showPane(MainMenuPane.class);
     }
 
-    /**
-     * Converting a vertical or horizontal coordinate x to the coordinate in board
-     * Hint:
-     *      The pixel size of every piece is defined in {@link ViewConfig#PIECE_SIZE}
-     * @param x coordinate of mouse click
-     * @return the coordinate on board
-     */
     private int toBoardCoordinate(double x){
-        // TODO
-        return 0;
+        return ((int) Math.floor(x) / ViewConfig.PIECE_SIZE);
     }
 
-    /**
-     * Handler of ending a game
-     * Hint:
-     *      - Clear the board, history text field
-     *      - Reset buttons
-     *      - Reset timer
-     *
-     */
     private void endGame() {
-        //TODO
+        if (fxJesonMor != null){
+            fxJesonMor.stopCountdown();
+        }
+
+        historyFiled.setText("");
+
+        gamePlayCanvas.setWidth(0);
+        gamePlayCanvas.setHeight(0);
+        startButton.setDisable(false);
+        restartButton.setDisable(true);
+
+        ticksElapsed.set(0);
+
+        this.centerContainer.getChildren().remove(infoPane);
+        this.infoPane = null;
     }
 }

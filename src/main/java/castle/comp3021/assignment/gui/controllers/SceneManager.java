@@ -6,7 +6,6 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-//import castle.comp3021.assignment.gui.views.panes.*;
 
 import java.util.Map;
 
@@ -18,6 +17,12 @@ public class SceneManager {
      * Singleton instance.
      */
     private static final SceneManager INSTANCE = new SceneManager();
+
+//    private static Configuration configuration = new Configuration();
+//
+//    public Configuration getConfiguration(){
+//        return configuration;
+//    }
 
 
     /**
@@ -45,7 +50,7 @@ public class SceneManager {
      * Level editor scene.
      */
     @NotNull
-    private final Scene settingEditorScene = new Scene(new SettingPane(), ViewConfig.WIDTH, ViewConfig.HEIGHT);
+    private final Scene SettingEditorScene = new Scene(new SettingPane(), ViewConfig.WIDTH, ViewConfig.HEIGHT);
     /**
      * Map for fast lookup of {@link BasePane} to their respective {@link Scene}.
      */
@@ -54,7 +59,7 @@ public class SceneManager {
             Map.entry(MainMenuPane.class, mainMenuScene),
             Map.entry(GamePane.class, settingsScene),
             Map.entry(GamePlayPane.class, gameplayScene),
-            Map.entry(SettingPane.class, settingEditorScene),
+            Map.entry(SettingPane.class, SettingEditorScene),
             Map.entry(ValidationPane.class, validationScene)
     );
     /**
@@ -63,11 +68,9 @@ public class SceneManager {
     @Nullable
     private Stage stage;
 
-    /**
-     * Add CSS styles to every scene
-     */
     private SceneManager() {
-        //TODO
+        System.out.println(ViewConfig.CSS_STYLES_PATH);
+        scenes.forEach((key, value) -> value.getStylesheets().add(ViewConfig.CSS_STYLES_PATH));
     }
 
     /**
@@ -76,6 +79,7 @@ public class SceneManager {
      * @param stage Primary stage.
      */
     public void setStage(@NotNull final Stage stage) {
+        System.out.println("setStage");
         if (this.stage != null) {
             throw new IllegalStateException("Primary stage is already initialized!");
         }
@@ -102,15 +106,14 @@ public class SceneManager {
      *
      * @param pane New pane to display.
      * @throws IllegalArgumentException If the {@code pane} is not known.
-     * Hint:
-     * showPane works with help of two parts: {@link SceneManager#scenes} and {@link SceneManager#showScene(Scene)}
-     * The logic is: get scene of pane by {@link SceneManager#scenes}
-     *      if the corresponding scene exists, then call showScene to show the corresponding scene.
-     *      else throw IllegalArgumentException
-     *
      */
     public void showPane(@NotNull final Class<? extends BasePane> pane) {
-        //TODO
+        final var scene = scenes.get(pane);
+        if (scene != null) {
+            showScene(scene);
+        } else {
+            throw new IllegalArgumentException("Cannot find scene with GamePane type " + pane.getName());
+        }
     }
 
     /**

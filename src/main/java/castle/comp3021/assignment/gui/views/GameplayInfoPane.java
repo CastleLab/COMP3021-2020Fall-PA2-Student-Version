@@ -1,6 +1,8 @@
 package castle.comp3021.assignment.gui.views;
 
 import castle.comp3021.assignment.gui.DurationTimer;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Label;
@@ -18,23 +20,21 @@ public class GameplayInfoPane extends BigVBox {
     private final Label curPlayerLabel = new Label();
     private final Label timerLabel = new Label();
 
-    /**
-     * Construct function, you need to bind given properties to the corresponding components
-     * @param score1Property score of players1
-     * @param score2Property score of player2
-     * @param curPlayer current player name
-     * @param ticksElapsed time passed in seconds
-     */
     public GameplayInfoPane(IntegerProperty score1Property, IntegerProperty score2Property, StringProperty curPlayer,
                             IntegerProperty ticksElapsed) {
-        //TODO
+        bindTo(score1Property, score2Property, curPlayer, ticksElapsed);
+        this.getChildren().addAll(
+                score1Label,
+                score2Label,
+                timerLabel,
+                curPlayerLabel);
     }
 
     /**
      * @param s Seconds duration
      * @return A string that formats the duration stopwatch style
      */
-    public static String formatTime(int s) {
+    private static String formatTime(int s) {
         final var d = Duration.of(s, SECONDS);
 
         int seconds = d.toSecondsPart();
@@ -47,7 +47,7 @@ public class GameplayInfoPane extends BigVBox {
      * @param s Seconds duration
      * @return A string that formats the duration stopwatch style
      */
-    public static String countdownFormat(int s) {
+    private static String countdownFormat(int s) {
         final var d = Duration.of(DurationTimer.getDefaultEachRound() - s, SECONDS);
 
         int seconds = d.toSecondsPart();
@@ -58,8 +58,6 @@ public class GameplayInfoPane extends BigVBox {
 
     /**
      * Binds all properties to their respective UI elements.
-     * Hint:
-     *     - You may find it useful to synchronize javafx UI-thread using {@link javafx.application.Platform#runLater}
      *
      * @param score1Property Score of Player 1
      * @param score2Property Score of Player 2
@@ -68,6 +66,11 @@ public class GameplayInfoPane extends BigVBox {
      */
     private void bindTo(IntegerProperty score1Property, IntegerProperty score2Property, StringProperty curPlayer,
                         IntegerProperty ticksElapsed) {
-        // TODO
+        Platform.runLater(()->{
+            score1Label.textProperty().bind(Bindings.createStringBinding(() -> "Score of player 1: " + score1Property.get(), score1Property));
+            score2Label.textProperty().bind(Bindings.createStringBinding(() -> "Score of player 2: " + score2Property.get(), score2Property));
+            timerLabel.textProperty().bind(Bindings.createStringBinding(() -> "Time: " + countdownFormat(ticksElapsed.get()), ticksElapsed));
+            curPlayerLabel.textProperty().bind(Bindings.createStringBinding(() -> "Current player: " + curPlayer.get(), curPlayer));
+        });
     }
 }

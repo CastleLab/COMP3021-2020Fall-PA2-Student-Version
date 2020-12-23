@@ -1,12 +1,8 @@
 package castle.comp3021.assignment.piece;
 
-import castle.comp3021.assignment.protocol.Game;
-import castle.comp3021.assignment.protocol.Move;
-import castle.comp3021.assignment.protocol.Piece;
-import castle.comp3021.assignment.protocol.Place;
-import castle.comp3021.assignment.protocol.Player;
 import castle.comp3021.assignment.gui.controllers.Renderer;
 import castle.comp3021.assignment.gui.controllers.ResourceLoader;
+import castle.comp3021.assignment.protocol.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -31,6 +27,7 @@ public class Knight extends Piece {
 
     @Override
     public Move[] getAvailableMoves(Game game, Place source) {
+        // TODO student implementation
         var moves = new ArrayList<Move>();
         var steps = new int[]{1, -1, 2, -2};
         for (var stepX :
@@ -67,14 +64,14 @@ public class Knight extends Piece {
         return true;
     }
 
-    /**
-     * Render archer pieces to the corresponding images implemented in {@link ResourceLoader getImage}
-     * Hint: consider different color of knight pieces.
-     * Throw IllegalStateException exception if failed to load image.
-     * @return {@link Renderer.CellImage}
-     */
     public Renderer.@NotNull CellImage getImageRep() {
-        //TODO
-        return null;
+        String playerName = this.getPlayer().getName();
+
+        return new Renderer.CellImage(switch (playerName) {
+            case "White" -> ResourceLoader.getImage('K');
+            case "Black" -> ResourceLoader.getImage('k');
+            default -> throw new IllegalStateException("Unexpected value: " + playerName);
+        }
+        );
     }
 }

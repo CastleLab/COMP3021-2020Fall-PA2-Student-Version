@@ -13,6 +13,7 @@ public class KnightMoveRule implements Rule {
         if (!(game.getPiece(move.getSource()) instanceof Knight)) {
             return true;
         }
+        // TODO student implementation
         var source = move.getSource();
         var destination = move.getDestination();
         return Math.abs(destination.x() - source.x()) == 2 && Math.abs(destination.y() - source.y()) == 1 ||

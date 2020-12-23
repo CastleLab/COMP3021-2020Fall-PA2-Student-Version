@@ -56,6 +56,10 @@ public class Place implements Cloneable {
         return (Place) super.clone();
     }
 
+    /**
+     * Converting a place to string
+     * @return a string of place in form of (%d, %d)
+     */
     @Override
     public String toString() {
         return String.format("(%d,%d)", x, y);

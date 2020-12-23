@@ -1,13 +1,13 @@
 package castle.comp3021.assignment.gui.views.panes;
 
 import castle.comp3021.assignment.gui.controllers.SceneManager;
+import castle.comp3021.assignment.gui.views.BigButton;
+import castle.comp3021.assignment.gui.views.BigVBox;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import org.jetbrains.annotations.NotNull;
-import castle.comp3021.assignment.gui.views.BigButton;
-import castle.comp3021.assignment.gui.views.BigVBox;
 
 public class MainMenuPane extends BasePane {
     @NotNull
@@ -32,7 +32,14 @@ public class MainMenuPane extends BasePane {
 
     @Override
     void connectComponents() {
-        // TODO
+        container.getChildren().addAll(
+                title,
+                playButton,
+                settingsButton,
+                validationButtion,
+                quitButton
+        );
+        this.setCenter(container);
     }
 
     /**
@@ -44,16 +51,19 @@ public class MainMenuPane extends BasePane {
     }
 
     /**
-     * add callbacks to buttons
-     * Hint:
-     *      - playButton -> {@link GamePane}
-     *      - settingsButton -> {@link SettingPane}
-     *      - validationButtion -> {@link ValidationPane}
-     *      - quitButton -> quit the game
+     * {@inheritDoc}
      */
     @Override
     void setCallbacks() {
-        //TODO
+        playButton.setOnAction(event -> {
+            final var gamePane = SceneManager.getInstance().<GamePane>getPane(GamePane.class);
+            gamePane.fillValues();
+            SceneManager.getInstance().showPane(GamePane.class);
+        });
+        settingsButton.setOnAction(event -> SceneManager.getInstance().showPane(SettingPane.class));
+        validationButtion.setOnAction(event -> SceneManager.getInstance().showPane(ValidationPane.class));
+        quitButton.setOnAction(event -> Platform.exit());
+
     }
 
 }

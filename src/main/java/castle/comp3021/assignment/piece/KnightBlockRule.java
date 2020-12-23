@@ -15,6 +15,8 @@ public class KnightBlockRule implements Rule {
         if (!(game.getPiece(move.getSource()) instanceof Knight)) {
             return true;
         }
+        // TODO student implementation
+
         var source = move.getSource();
         var destination = move.getDestination();
         if (Math.abs(source.x() - destination.x()) == 2) {

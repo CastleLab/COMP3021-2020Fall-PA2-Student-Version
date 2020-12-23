@@ -8,16 +8,9 @@ public class ViewConfig {
     private ViewConfig() {
     }
 
-
-    /**
-     * The preset width and height of the pane in pixel
-     */
     public static final int WIDTH = 800;
     public static final int HEIGHT = 600;
 
-    /**
-     * The preset size of piece in pixel
-     */
     public static final int PIECE_SIZE = 32;
 
     public static final String CSS_STYLES_PATH = ResourceLoader.getResource("assets/styles/styles.css");
@@ -48,9 +41,6 @@ public class ViewConfig {
                         "- Each player should make decision within 30 seconds, otherwise, lose the game\n";
     }
 
-    /**
-     * Necessary warning statements
-     */
     @NotNull
     public static final String MSG_BAD_SIZE_NUM = "Size of game board must be at least 3";
     @NotNull

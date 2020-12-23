@@ -6,6 +6,8 @@ import castle.comp3021.assignment.gui.controllers.SceneManager;
 import castle.comp3021.assignment.gui.views.BigButton;
 import castle.comp3021.assignment.gui.views.BigVBox;
 import castle.comp3021.assignment.gui.views.NumberTextField;
+import castle.comp3021.assignment.protocol.Configuration;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
@@ -54,7 +56,17 @@ public class GamePane extends BasePane {
 
     @Override
     void connectComponents() {
-        //TODO
+        container.getChildren().addAll(
+                title,
+                sizeBox,
+                numMovesProtectionBox,
+                isHumanPlayer1Button,
+                isHumanPlayer2Button,
+                useDefaultButton,
+                playButton,
+                returnButton
+        );
+        this.setCenter(container);
     }
 
     @Override
@@ -62,51 +74,81 @@ public class GamePane extends BasePane {
         title.getStyleClass().add("head-size");
     }
 
-    /**
-     * Set callbacks to buttons
-     * Hint:
-     * -  When fill in board size and step of protections, numbers need to validate
-     * -  useDefaultButton: use default value for {@link GamePane#sizeFiled}, {@link GamePane#numMovesProtectionField}, and two players
-     *    as they are saved in {@link SettingPane}
-     * -  The current configuration (including {@link GamePane#sizeFiled}, {@link GamePane#numMovesProtectionField} and two players role)
-     *    should not affect the default settings.
-     * -  After clicking "play" button, the handler is implemented in {@link GamePane#startGame(FXJesonMor)},
-     *    which links to {@link GamePlayPane} using the current configuration.
-     */
     @Override
     void setCallbacks() {
-        //TODO
+        playButton.setOnAction(event -> validate(sizeFiled.getValue(), numMovesProtectionField.getValue()).
+                ifPresentOrElse(msg -> {
+            final var alertBox = new Alert(Alert.AlertType.ERROR);
+            alertBox.setTitle("Error");
+            alertBox.setHeaderText("Validation Failed");
+            alertBox.setContentText(msg);
+            alertBox.showAndWait();
+        }, () -> {
+            fxJesonMor = new FXJesonMor(new Configuration(sizeFiled.getValue(), globalConfiguration.getPlayers(), numMovesProtectionField.getValue()));
+
+            startGame(fxJesonMor);
+        }));
+
+        useDefaultButton.setOnAction(event ->{
+            sizeFiled.setText(String.valueOf(globalConfiguration.getSize()));
+            numMovesProtectionField.setText(String.valueOf(globalConfiguration.getNumMovesProtection()));
+            setChoiceButtons(globalConfiguration.isWhitePlayerHuman(), globalConfiguration.isBlackPlayerHuman());
+        });
+
+        isHumanPlayer1Button.setOnAction(event -> {
+            globalConfiguration.setWhitePlayer(!globalConfiguration.isWhitePlayerHuman());
+            isHumanPlayer1Button.setText("Player 1: " + (globalConfiguration.isWhitePlayerHuman() ? "Human" : "Computer"));
+        });
+        isHumanPlayer2Button.setOnAction(event -> {
+            globalConfiguration.setBlackPlayer(!globalConfiguration.isBlackPlayerHuman());
+            isHumanPlayer2Button.setText("Player 2: " + (globalConfiguration.isBlackPlayerHuman() ? "Human" : "Computer"));
+        });
+
+        returnButton.setOnAction(event -> SceneManager.getInstance().showPane(MainMenuPane.class));
     }
 
-    /**
-     * Handler when clicking "play" button, using the current configuration to pass a {@link FXJesonMor} instance
-     * Hint:
-     *      - You may need to initialize and set up {@link GamePlayPane} by passing {@link FXJesonMor}
-     * @param fxJesonMor an instance of {@link FXJesonMor}
-     */
     void startGame(@NotNull FXJesonMor fxJesonMor) {
         final var gameplayPane = SceneManager.getInstance().<GamePlayPane>getPane(GamePlayPane.class);
         gameplayPane.initializeGame(fxJesonMor);
         SceneManager.getInstance().showPane(GamePlayPane.class);
     }
 
-    /**
-     * Fill in the default values for all editable fields.
-     */
     void fillValues(){
-        // TODO
+        // set parameters as default, editable
+        sizeFiled.setText(String.valueOf(globalConfiguration.getSize()));
+        numMovesProtectionField.setText(String.valueOf(globalConfiguration.getNumMovesProtection()));
+        setChoiceButtons(globalConfiguration.isWhitePlayerHuman(), globalConfiguration.isBlackPlayerHuman());
+
+        // text fields are editable
+        sizeFiled.setEditable(true);
+        numMovesProtectionField.setEditable(true);
+        isHumanPlayer1Button.setDisable(false);
+        isHumanPlayer2Button.setDisable(false);
+
+        // enable play and useDefault buttons
+        playButton.setDisable(false);
+        useDefaultButton.setDisable(false);
     }
 
-    /**
-     * Validate the text fields
-     * The useful msgs are predefined in {@link ViewConfig#MSG_BAD_SIZE_NUM}, etc.
-     * @param size number in {@link GamePane#sizeFiled}
-     * @param numProtection number in {@link GamePane#numMovesProtectionField}
-     * @return If validation failed, {@link Optional} containing the reason message; An empty {@link Optional}
-     *      * otherwise.
-     */
+    private void setChoiceButtons(boolean enableButton1, boolean enableButton2){
+        isHumanPlayer1Button.setText("Player 1: " + (enableButton1 ? "Human" : "Computer"));
+        isHumanPlayer2Button.setText("Player 2: " + (enableButton2 ? "Human" : "Computer"));
+    }
+
     public static Optional<String> validate(int size, int numProtection) {
-        //TODO
-        return null;
+        if (size < 3) {
+            return Optional.of(ViewConfig.MSG_BAD_SIZE_NUM);
+        }
+        if (size % 2 != 1) {
+            return Optional.of(ViewConfig.MSG_ODD_SIZE_NUM);
+        }
+        if (size > 26) {
+            return Optional.of(ViewConfig.MSG_UPPERBOUND_SIZE_NUM);
+        }
+
+        if (numProtection < 0){
+            return Optional.of(ViewConfig.MSG_NEG_PROT);
+        }
+        return Optional.empty();
     }
 }
